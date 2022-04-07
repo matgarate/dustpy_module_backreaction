@@ -56,7 +56,7 @@ from functions_backreaction import dustDiffusivity_Backreaction
 
 
 # Set the backreaction coefficients
-sim.dust.backreaction.addfield("AB", np.array([np.ones_like(sim.grid.r), np.zeros_like(sim.grid.r)]),  description = "Backreaction Coefficients (joint - internal)")
+sim.dust.backreaction.addfield("AB", np.ones((2 * (sim.grid.Nm[0] + 1), sim.grid.Nr[0])),  description = "Backreaction Coefficients (joint - internal)")
 
 # Additional back-reaction coefficients for the dust
 sim.dust.backreaction.addfield("A_vertical", np.ones_like(sim.dust.a) ,  description = "Backreaction Coefficient A, considering dust vertical settling")
@@ -93,6 +93,7 @@ sim.update()
 # But I think that in the explicit integration scheme these need to be updated simultaneously in the dust.v.disastole
 from functions_backreaction import update_RadialVelocities
 sim.dust.v.diastole = update_RadialVelocities
+sim.update()
 '''
 
 

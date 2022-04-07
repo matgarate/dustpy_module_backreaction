@@ -76,6 +76,7 @@ from functions_backreaction import update_RadialVelocities
 # In the implicit integration scheme the dust.v.rad and gas.v are updated in the finalizer,
 # But I think that in the explicit integration scheme these need to be updated simultaneously in the dust.v.disastole
 sim.dust.v.diastole = update_RadialVelocities
+sim.update()
 '''
 
 

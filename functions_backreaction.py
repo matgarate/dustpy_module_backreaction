@@ -112,6 +112,8 @@ def BackReactionCoefficients_VerticalStructure(sim):
 
     '''
 
+    Nr = sim.grid.Nr[0]
+    Nm = sim.grid.Nm[0]
     Nz = 300                # Number of grid points for the vertical grid (locally defined)
     zmin = 1.e-5            # Height of the first vertical gridcell (after the midplane). In Gas Scale Heights
     zmax = 10.0             # Height of the last vertical gridcell. In Gas Scale Heights
@@ -186,11 +188,11 @@ def BackReactionCoefficients_VerticalStructure(sim):
     # The entry 2 : Nm + 1 corresponds to Ad traspose (dust backreaction coefficient A)
     # The entry Nm + 2 : 2*Nm + 1 corresponds to Bd traspose (dust backreaction coefficient B)
 
-    backReactCoeff = np.ones((2 * (sim.grid.Nm + 1), sim.grid.Nr))
+    backReactCoeff = np.ones((2 * (Nm + 1), Nr))
     backReactCoeff[0] = Ag
     backReactCoeff[1] = Bg
-    backReactCoeff[2 : sim.grid.Nm + 2] = Ad.T
-    backReactCoeff[sim.grid.Nm + 2 :] = Bd.T
+    backReactCoeff[2 : Nm + 2] = Ad.T
+    backReactCoeff[Nm + 2 :] = Bd.T
 
     return backReactCoeff
 
@@ -203,12 +205,12 @@ def BackReactionCoefficients_VerticalStructure(sim):
 #
 #########################################################################################
 def Backreaction_A_VerticalStructure(sim):
-    return sim.dust.backreaction.AB[2 : sim.grid.Nm + 2].T  # Shape (Nr, Nm)
+    Nm = sim.grid.Nm[0]
+    return sim.dust.backreaction.AB[2 : Nm + 2].T  # Shape (Nr, Nm)
 
 def Backreaction_B_VerticalStructure(sim):
-    return sim.dust.backreaction.AB[sim.grid.Nm + 2 :].T    # Shape (Nr, Nm)
-
-
+    Nm = sim.grid.Nm[0]
+    return sim.dust.backreaction.AB[Nm + 2 :].T    # Shape (Nr, Nm)
 
 def vrad_dust_BackreactionVerticalStructure(sim):
     St = sim.dust.St
@@ -216,10 +218,11 @@ def vrad_dust_BackreactionVerticalStructure(sim):
     A = sim.dust.backreaction.A_vertical
     B = sim.dust.backreaction.B_vertical
 
+    # Viscous velocity and pressure velocity
     vvisc = sim.gas.v.visc[:, None]
-    vback = 2. * (sim.gas.eta * sim.grid.r * sim.grid.OmegaK)[:, None]
+    vpres = (sim.gas.eta * sim.grid.r * sim.grid.OmegaK)[:, None]
 
-    vgas_rad =  A * vvisc + B * vback
-    vdrift_max = 0.5 * (B * vvisc - A * vback)
+    vgas_rad =  A * vvisc + 2. * B * vpres
+    vdrift_max = 0.5 * B * vvisc - A * vpres
 
-    return (vgas_rad + 2. * vDriftMax * St) / (1. + St**2.)
+    return (vgas_rad + 2. * vdrift_max * St) / (1. + St**2.)
