@@ -43,11 +43,6 @@ setup_backreaction(sim, vertical_setup = False)
 ################################
 # RUN SIMULATION
 ################################
-print("Running Simulation")
-
-outputDir = "./Simulation/"
-sim.writer.datadir = outputDir
+sim.writer.datadir = "./Simulation/"
 sim.t.snapshots = np.linspace(0.5, 5.0, 11) * 1.e5 * c.year
-sim.verbosity = 1
-
 sim.run()
