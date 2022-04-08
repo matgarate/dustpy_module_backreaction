@@ -4,8 +4,11 @@ Includes the dynamical dust backreaction into [DustPy](https://github.com/stamml
 
 
 To setup the backreaction module, add the following lines after initialization.
+
 `from setup_backreaction import setup_backreaction`
+
 `setup_backreaction(sim, vertical_setup = False)`
+
 
 
 See the `run_backreaction.py` code for an example.
