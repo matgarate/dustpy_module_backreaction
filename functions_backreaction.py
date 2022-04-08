@@ -101,7 +101,7 @@ def dustDiffusivity_Backreaction(sim):
 #
 #########################################################################################
 #########################################################################################
-def BackReactionCoefficients_VerticalStructure(sim):
+def BackreactionCoefficients_VerticalStructure(sim):
     '''
     Obtain the backreaction coefficients considering the vertical structure.
     For more information check Garate et al. (2019), equations 23 - 26 in Appendix.
@@ -222,6 +222,7 @@ def vrad_dust_BackreactionVerticalStructure(sim):
     vvisc = sim.gas.v.visc[:, None]
     vpres = (sim.gas.eta * sim.grid.r * sim.grid.OmegaK)[:, None]
 
+    #Radial gas velocity and the maximum drift velocity, following (Garate et al., 2020. Eqs. 14, 15)
     vgas_rad =  A * vvisc + 2. * B * vpres
     vdrift_max = 0.5 * B * vvisc - A * vpres
 
