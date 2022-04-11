@@ -35,7 +35,7 @@ sim.initialize()
 ################################
 
 # Add the next two lines to your script after "initialize()"" to setup the backreaction updaters
-# To include the effect of verical dust settling use "vertical_setup = True"
+# To account for the effect of vertical dust settling use "vertical_setup = True"
 from setup_backreaction import setup_backreaction
 setup_backreaction(sim, vertical_setup = False)
 
@@ -44,5 +44,5 @@ setup_backreaction(sim, vertical_setup = False)
 # RUN SIMULATION
 ################################
 sim.writer.datadir = "./Simulation/"
-sim.t.snapshots = np.linspace(0.5, 5.0, 11) * 1.e5 * c.year
+sim.t.snapshots = np.linspace(0.5, 5.0, 10) * 1.e5 * c.year
 sim.run()
