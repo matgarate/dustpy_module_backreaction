@@ -5,6 +5,7 @@ import os
 
 import dustpy
 from dustpy import Simulation
+from dustpy import std
 from simframe.frame import Field
 from dustpy import constants as c
 
@@ -30,9 +31,9 @@ def get_Simulation(build_up = False, SigmaDust = None):
 
 
     # Relevant Dust parameters
-    sim.ini.gas.alpha = 1.e-2   # # High alpha to make the disk gas evolution noticeable
-    sim.ini.dust.d2gRatio = 0.25 # High dust-to-gas ratio
-    sim.ini.dust.vfrag = 1000 # Extremely low fragmentation velocity
+    sim.ini.gas.alpha = 1.e-2       # High alpha to make the disk gas evolution noticeable
+    sim.ini.dust.d2gRatio = 0.25    # High dust-to-gas ratio
+    sim.ini.dust.vfrag = 1000       # High Fragmentation velocity (irrelevant, since it is redefined later)
 
     ################################
     # GRID SETUP
@@ -44,13 +45,12 @@ def get_Simulation(build_up = False, SigmaDust = None):
     sim.ini.grid.mmax = 1.e0
 
     # Radial Grid Parameters
-    sim.ini.grid.Nr = 200
-    sim.ini.grid.rmin = 5 * c.au
-    sim.ini.grid.rmax = 500 * c.au
+    sim.ini.grid.Nr = 250
+    sim.ini.grid.rmin = 2.5 * c.au
+    sim.ini.grid.rmax = 750. * c.au
 
-    # Make the grids in advace to set the gas surface density using the power law distribution
-    sim.makegrids()
 
+    sim.initialize()
 
     ################################
     # INITIAL SURFACE DENSITY PROFILE
@@ -60,14 +60,17 @@ def get_Simulation(build_up = False, SigmaDust = None):
         return Sigma0 * (r / R0)**exp
 
     SigmaGas = np.array(Sigma_PowerLaw(sim.grid.r, 30., 10 * c.au, -1))
-    sim.gas.Sigma = Field(sim, SigmaGas, description="Surface density [g/cm²]")
+    sim.gas.Sigma = SigmaGas
+    if build_up:
+        sim.dust.Sigma = std.dust.MRN_distribution(sim) # We load the specific function from the standard library and re-calculate the dust surface density
+    else:
+        sim.dust.Sigma = SigmaDust
+    sim.dust.Sigma = np.where(sim.dust.Sigma > sim.dust.SigmaFloor, sim.dust.Sigma,(0.1*sim.dust.SigmaFloor))
 
-    if not build_up:
-        sim.dust.Sigma = Field(sim, SigmaDust, description="Surface density per mass bin [g/cm²]")
-
-    sim.initialize()
-
-
+    # Set the outer boundary conditions (the outer boundary still loses material for some reason)
+    sim.gas.boundary.outer.setcondition('const_pow')
+    sim.dust.boundary.outer.setcondition('const_pow')
+    sim.update()
 
 
     ########################################################################
@@ -77,6 +80,9 @@ def get_Simulation(build_up = False, SigmaDust = None):
     sim.dust.delta.turb = sim.gas.alpha
     sim.dust.delta.vert = sim.gas.alpha
     sim.dust.delta.rad = 1.e-8
+
+    sim.dust.D = 0.
+    sim.dust.D.updater = None
     sim.update()
 
     ########################################################################
@@ -109,16 +115,10 @@ def get_Simulation(build_up = False, SigmaDust = None):
     if build_up:
         # Set the dust advection to zero
         sim.dust.v.rad = 0
-        sim.dust.D = 0.
         sim.dust.v.rad.updater = None
-        sim.dust.D.updater = None
-
         # Delete gas evolution during build-up
         del(sim.integrator.instructions[1])
     else:
-        # Adjust the outer boundary condition here...
-
-
         # Update the velocities so that they are written correctly in the first snapshot
         sim.update()
         sim.gas.v.update()
@@ -137,7 +137,7 @@ def get_Simulation(build_up = False, SigmaDust = None):
 # Make the build-up simulation to get the dust distribution
 sim_build_up = get_Simulation(build_up = True)
 sim_build_up.writer.datadir = "./Simulation_BuildUp/"
-sim_build_up.t.snapshots = np.linspace(0.5, 2.5, 5) * 1.e4 * c.year
+sim_build_up.t.snapshots = np.linspace(1., 5., 5) * 1.e4 * c.year
 sim_build_up.writer.overwrite = True
 sim_build_up.run()
 
@@ -145,6 +145,6 @@ sim_build_up.run()
 # Let the simulation evolve normally with gas and dust advection, starting from the fully grown dust distribution
 sim = get_Simulation(build_up = False, SigmaDust = sim_build_up.dust.Sigma)
 sim.writer.datadir = "./Simulation_PowerLaw/"
-sim.t.snapshots = np.linspace(0.1, 1.0, 10) * 1.e5 * c.year
+sim.t.snapshots = np.linspace(0.1, 1.5, 15) * 1.e5 * c.year
 sim.writer.overwrite = True
 sim.run()
