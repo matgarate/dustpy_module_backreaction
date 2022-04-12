@@ -58,10 +58,12 @@ def setup_backreaction(sim, vertical_setup = False, velocity_update = False):
 
 
     # Update the gas and dust velocities in dust.v.diastole
-    # Not necessary for implicit simulations?
+    # Not necessary for implicit simulations(?)
     if velocity_update:
         from functions_backreaction import update_RadialVelocities
         sim.dust.v.diastole = update_RadialVelocities
 
     # Update all
     sim.update()
+    sim.gas.v.rad.update()
+    sim.dust.v.rad.update()

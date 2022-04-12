@@ -9,6 +9,9 @@ from dustpy import std
 from simframe.frame import Field
 from dustpy import constants as c
 
+from dustpy import hdf5writer
+hdf5writer = hdf5writer()
+
 
 ################################
 # BENCHMARK
@@ -19,7 +22,7 @@ This disk behaves as standard power-law viscous accretion, with a reduced equiva
 The description of the can be found in Garate et al.(2020) Appendix A.
 '''
 
-def get_Simulation(build_up = False, SigmaDust = None):
+def get_Simulation(build_up = False, SigmaDust = None, fix_boundaries = False):
     sim = Simulation()
 
     ################################
@@ -60,18 +63,48 @@ def get_Simulation(build_up = False, SigmaDust = None):
         return Sigma0 * (r / R0)**exp
 
     SigmaGas = np.array(Sigma_PowerLaw(sim.grid.r, 30., 10 * c.au, -1))
-    sim.gas.Sigma = SigmaGas
     if build_up:
-        sim.dust.Sigma = std.dust.MRN_distribution(sim) # We load the specific function from the standard library and re-calculate the dust surface density
-    else:
-        sim.dust.Sigma = SigmaDust
+        SigmaDust = std.dust.MRN_distribution(sim) # We load the specific function from the standard library and re-calculate the dust surface density
+
+    sim.gas.Sigma = SigmaGas
+    sim.dust.Sigma = SigmaDust
     sim.dust.Sigma = np.where(sim.dust.Sigma > sim.dust.SigmaFloor, sim.dust.Sigma,(0.1*sim.dust.SigmaFloor))
 
-    # Set the outer boundary conditions (the outer boundary still loses material for some reason)
+
+    ################################
+    # BOUNDARIES
+    ################################
+
+    # Set the outer boundary conditions
     sim.gas.boundary.outer.setcondition('const_pow')
     sim.dust.boundary.outer.setcondition('const_pow')
     sim.update()
 
+
+    # Fix the boundaries at the beginning of every timestep to avoid dealing with the boundary condition
+    # The goal of this fix is to detect deviations from the steady state in the middle of the disk, rather than due to errors propagating from the inner/outer regions.
+    # It is a bit like cheating, but it is almost impossible to find a standard boundary condition for dust back-reactions.
+    def systole_FixBoundaries(sim):
+        sim.gas.Sigma[:2] = SigmaGas[:2]
+        sim.dust.Sigma[:2, :] = SigmaDust[:2, :]
+
+        sim.gas.Sigma[-2:] = SigmaGas[-2:]
+        sim.dust.Sigma[-2:, :] = SigmaDust[-2:, :]
+
+
+        # The gas and dust velocities, and sources need to be updated as well
+        # This is because we are using the implicit integration scheme
+        sim.gas.v.update()
+        sim.gas.Fi.update()
+        sim.gas.S.hyd.update()
+
+        sim.dust.v.rad.update()
+        sim.dust.Fi.update()
+        sim.dust.S.hyd.update()
+        sim.dust.S.coag.update()
+
+    if fix_boundaries:
+        sim.updater.systole = systole_FixBoundaries
 
     ########################################################################
     # ADJUST Deltas
@@ -109,6 +142,9 @@ def get_Simulation(build_up = False, SigmaDust = None):
     setup_backreaction(sim, vertical_setup = False, velocity_update = False)
 
 
+
+
+
     ################################################################
     # TURN-OFF GAS EVOLUTION AND DUST ADVECTION DURING BUILDUP
     ################################################################
@@ -142,9 +178,21 @@ sim_build_up.writer.overwrite = True
 sim_build_up.run()
 
 
+
+
 # Let the simulation evolve normally with gas and dust advection, starting from the fully grown dust distribution
 sim = get_Simulation(build_up = False, SigmaDust = sim_build_up.dust.Sigma)
 sim.writer.datadir = "./Simulation_PowerLaw/"
+sim.t.snapshots = np.linspace(0.1, 1.5, 15) * 1.e5 * c.year
+sim.writer.overwrite = True
+sim.run()
+
+
+#hdf5writer.datadir = "./Simulation_BuildUp/"
+#sim_build_up = hdf5writer.read.output(5)
+
+sim = get_Simulation(build_up = False, SigmaDust = sim_build_up.dust.Sigma, fix_boundaries = True)
+sim.writer.datadir = "./Simulation_PowerLaw_FixBoundaries/"
 sim.t.snapshots = np.linspace(0.1, 1.5, 15) * 1.e5 * c.year
 sim.writer.overwrite = True
 sim.run()
