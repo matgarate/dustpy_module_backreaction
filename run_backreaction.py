@@ -45,4 +45,9 @@ setup_backreaction(sim, vertical_setup = False)
 ################################
 sim.writer.datadir = "./Simulation/"
 sim.t.snapshots = np.linspace(0.5, 5.0, 10) * 1.e5 * c.year
+
+sim.writer.dumping = True
+sim.writer.overwrite = True
+sim.verbosity = 2
+
 sim.run()
