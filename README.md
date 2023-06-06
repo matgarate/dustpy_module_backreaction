@@ -15,4 +15,4 @@ See the `run_backreaction.py` code for an example.
 If you use this module, please cite [Garate et al.(2020)](https://ui.adsabs.harvard.edu/abs/2020A%26A...635A.149G/abstract)
 
 
-This module is currently being implemented into the [Dustpylib](https://github.com/stammler/dustpylib) under the `dustpylib.dynamical.backreaction` module.
+This module is currently being implemented into the [Dustpylib](https://github.com/stammler/dustpylib) under the `dustpylib.dynamical.backreaction` module, with additional documentation and examples.
